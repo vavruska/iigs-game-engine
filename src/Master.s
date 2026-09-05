@@ -34,8 +34,15 @@
 
             ASM   static/TileStore.s
             KND   #$1101               ; Type and Attributes ($11=Static+Bank Relative,$01=Data)
-            ALI   BANK
-            SNA   TSTORE
+             ALI   BANK
+             SNA   TSTORE
+
+; Additional sprite intersection bitmap planes
+
+             ASM   static/SpriteFlags.s
+             KND   #$1101
+             ALI   BANK
+             SNA   SFLAGS
 
 ; 64KB Rotation Data Tables
 

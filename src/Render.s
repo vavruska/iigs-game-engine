@@ -508,25 +508,36 @@ _DrawDirectSprites
             bit    #RENDER_SPRITES_SORTED
             bne    :sorted
 
-; Shift through the sprites
+; Shift through all eight words of the 128-bit sprite map.
 
-            lda    SpriteMap
-            beq    :empty
-            sta    tmp15
             ldx    #0
-
-:iloop
-            lsr    tmp15
+            stz    tmp12                       ; bitmap word offset
+            stz    tmp14                       ; sprite record base for this word
+:word       lda    _SpriteMap,x
+            sta    tmp15
+            stz    tmp13                       ; record offset within this word
+:bit        lsr    tmp15
             bcc    :next
-
-            phx
+            lda    tmp14
+            clc
+            adc    tmp13
+            tax
             jsr    _DrawStampToScreen
-            plx
-
-:next       inx
-            inx
-            lda    tmp15
-            bne    :iloop
+            ldx    tmp12
+:next       inc    tmp13
+            inc    tmp13
+            lda    tmp13
+            cmp    #32
+            bcc    :bit
+            inc    tmp12
+            inc    tmp12
+            lda    tmp14
+            clc
+            adc    #32
+            sta    tmp14
+            lda    tmp12
+            cmp    #16
+            bcc    :word
             rts
 
 :sorted
@@ -792,5 +803,3 @@ DebugSCBs
             ply
             plx
             rts
-
-

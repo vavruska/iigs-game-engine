@@ -108,7 +108,14 @@ InitTiles
                  lda  #0
                  sta  TileStore+TS_TILE_ID,x            ; clear the tile store with the special zero tile
                  sta  TileStore+TS_TILE_ADDR,x
-                 sta  TileStore+TS_SPRITE_FLAG,x        ; no sprites are set at the beginning
+                  sta  TileStore+TS_SPRITE_FLAG,x        ; no sprites are set at the beginning
+                  stal SpriteFlag1,x
+                  stal SpriteFlag2,x
+                  stal SpriteFlag3,x
+                  stal SpriteFlag4,x
+                  stal SpriteFlag5,x
+                  stal SpriteFlag6,x
+                  stal SpriteFlag7,x
                  sta  TileStore+TS_DIRTY,x              ; none of the tiles are dirty
 
 ; Set the default tile rendering functions
@@ -172,10 +179,12 @@ InitTiles
                  sta  :col
 :hop
 
-                 dex
-                 dex
-                 bpl  :loop
-                 rts
+                  dex
+                  dex
+                  bmi  :done
+                  brl  :loop
+:done
+                  rts
 
 ; Put everything visible on the dirty tile list
 _Refresh
@@ -662,16 +671,16 @@ next_bit
 
 ; Last bit test which *must* be set
 endbit      mac
+            sec                             ; [!! INTERLOCK !!] TS_VBUFF_BASE is pre-decremented; carry may be 0 here
             lda   (SPRITE_VBUFF_PTR+{]1*2}),y
-;            clc    ; pre-adjust these later
             adc   _Sprites+TS_VBUFF_BASE+{]1*2}
             sta   sprite_ptr0+{]2*4}
             jmp   ]3
             <<<
 
 endbit1     mac
+            sec                             ; [!! INTERLOCK !!] TS_VBUFF_BASE is pre-decremented; carry may be 0 here
             lda   (SPRITE_VBUFF_PTR+{]1*2}),y
-;            clc    ; pre-adjust these later
             adc   _Sprites+TS_VBUFF_BASE+{]1*2}
             sta   sprite_ptr0+{]2*4}
             tyx

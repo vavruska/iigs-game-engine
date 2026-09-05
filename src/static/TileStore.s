@@ -29,6 +29,18 @@ DirtyTiles     ENT
 _Sprites       ENT
                ds  SPRITE_REC_SIZE*MAX_ELEMENTS
 
+_SpriteMap     ENT
+               ds  16
+_ActiveSpriteList ENT
+               ds  MAX_SPRITES*2
+_SpriteFlagPtrs ENT
+               adrl TileStore+TS_SPRITE_FLAG,SpriteFlag1
+               adrl SpriteFlag2,SpriteFlag3
+               adrl SpriteFlag4,SpriteFlag5
+               adrl SpriteFlag6,SpriteFlag7
+_SpriteVBuffOffsets ENT
+               ds  MAX_SPRITES*2
+
 ;-------------------------------------------------------------------------------------
 ;
 ; A double-sized table of lookup values.  It is double-width and double-height so that,
@@ -518,9 +530,13 @@ VBuffArray        ENT
 
 ; Convert sprite index to a bit position
 _SpriteBits      ENT
+                 lup 8
                  dw $0001,$0002,$0004,$0008,$0010,$0020,$0040,$0080,$0100,$0200,$0400,$0800,$1000,$2000,$4000,$8000
+                 --^
 _SpriteBitsNot   ENT
+                 lup 8
                  dw $FFFE,$FFFD,$FFFB,$FFF7,$FFEF,$FFDF,$FFBF,$FF7F,$FEFF,$FDFF,$FBFF,$F7FF,$EFFF,$DFFF,$BFFF,$7FFF
+                 --^
 
 ; Doubly linked list that allows the sprites to be traversed in SPRITE_CLIP_TOP order. The prev/next
 ; index links are stored in the parallel _Sprites structure; just the extra head and tail index values

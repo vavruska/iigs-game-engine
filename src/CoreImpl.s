@@ -232,8 +232,13 @@ EngineReset
                   stz       SCBArrayPtr+2
 
                   stz       SpriteBanks
-                  stz       SpriteMap
-                  stz       ActiveSpriteCount
+                   ldx       #14
+:clear_sprite_map
+                   stz       _SpriteMap,x
+                   dex
+                   dex
+                   bpl       :clear_sprite_map
+                   stz       ActiveSpriteCount
 
                   stz       OneSecondCounter
 

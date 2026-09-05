@@ -133,7 +133,7 @@ ROW_BYTES  equ 384                                 ; VBUFF_TILE_ROW_BYTES
 ; The sprite rendering pipeline is:
 ;
 ; 0. Check if any new sprites have been added by testing the DIRTY_BIT_SPRITE_ARRAY. If so, then
-;    the activeSpriteList (a 32-byte array on the direct page) is rebuilt from the SpriteBits bitmap
+;    the active sprite list (a 256-byte static array) is rebuilt from the 128-bit SpriteMap bitmap
 ;    word.
 ;
 ; Next, the activeSpriteList is scanned for changes to specific sprites. If the screen has been
@@ -203,8 +203,20 @@ _RenderSprites
 ; how many sprite to process and they are in a contiguous array.  So we don't have to keep
 ; track of an iteration variable
 
-            ldx   ActiveSpriteCount
-            jmp   (phase1,x)
+            stz   tmp14
+:phase_loop
+            lda   tmp14
+            cmp   ActiveSpriteCount
+            bcs   :phase_done
+            tax
+            lda   _ActiveSpriteList,x
+            tay
+            jsr   _DoPhase1
+            inc   tmp14
+            inc   tmp14
+            bra   :phase_loop
+:phase_done
+            rts
 
 ; Implement the logic for updating sprite and tile rendering information. Each iteration of the 
 ; ActiveSpriteCount will call this routine with the Y-register set to the sprite index
@@ -220,7 +232,18 @@ _DoPhase1
 
             lda   _SpriteBits,y                   ; Clear from the sprite bitmap
             sta   SpriteRemovedFlag               ; Stick a non-zero value here
-            trb   SpriteMap
+            sta   tmp0
+            tya
+            and   #$00E0
+            lsr
+            lsr
+            lsr
+            lsr
+            tax
+            lda   tmp0
+            eor   #$FFFF
+            and   _SpriteMap,x
+            sta   _SpriteMap,x
             lda   #SPRITE_STATUS_EMPTY            ; Mark as empty so no error if we try to Add a sprite here again
             sta   _Sprites+SPRITE_STATUS,y
             tyx
@@ -271,46 +294,6 @@ _DoPhase1
             sta   _Sprites+SPRITE_STATUS,y             ; Clear the dirty bits (ADDED, UPDATED, MOVED)
 
             jmp   _MarkDirtySpriteTiles
-
-; Dispatch table.  It's unintersting, so it's tucked out of the way
-phase1      dw    :phase1_0
-            dw    :phase1_1,:phase1_2,:phase1_3,:phase1_4
-            dw    :phase1_5,:phase1_6,:phase1_7,:phase1_8
-            dw    :phase1_9,:phase1_10,:phase1_11,:phase1_12
-            dw    :phase1_13,:phase1_14,:phase1_15,:phase1_16
-:phase1_16  ldy   activeSpriteList+30
-            jsr   _DoPhase1
-:phase1_15  ldy   activeSpriteList+28
-            jsr   _DoPhase1
-:phase1_14  ldy   activeSpriteList+26
-            jsr   _DoPhase1
-:phase1_13  ldy   activeSpriteList+24
-            jsr   _DoPhase1
-:phase1_12  ldy   activeSpriteList+22
-            jsr   _DoPhase1
-:phase1_11  ldy   activeSpriteList+20
-            jsr   _DoPhase1
-:phase1_10  ldy   activeSpriteList+18
-            jsr   _DoPhase1
-:phase1_9   ldy   activeSpriteList+16
-            jsr   _DoPhase1
-:phase1_8   ldy   activeSpriteList+14
-            jsr   _DoPhase1
-:phase1_7   ldy   activeSpriteList+12
-            jsr   _DoPhase1
-:phase1_6   ldy   activeSpriteList+10
-            jsr   _DoPhase1
-:phase1_5   ldy   activeSpriteList+8
-            jsr   _DoPhase1
-:phase1_4   ldy   activeSpriteList+6
-            jsr   _DoPhase1
-:phase1_3   ldy   activeSpriteList+4
-            jsr   _DoPhase1
-:phase1_2   ldy   activeSpriteList+2
-            jsr   _DoPhase1
-:phase1_1   ldy   activeSpriteList
-            jmp   _DoPhase1
-:phase1_0   rts
 
 ; Utility function to calculate the difference in tile positions between a sprite's current
 ; position and it's previous position.  This gets interesting because the number of tiles
@@ -373,11 +356,13 @@ _CreateSpriteStamp
 ;
 ; A = Sprite ID / Flags
 ; Y = High Byte = x-pos, Low Byte = y-pos
-; X = Sprite Slot (0 - 15)
+; X = Sprite Slot (0 - 127)
 _AddSprite
+            cpx   #MAX_SPRITES
+            bcs   :invalid_slot
             pha
             txa
-            and   #$000F
+            and   #$007F
             asl
             tax
             pla
@@ -406,13 +391,27 @@ _AddSprite
             tsb   DirtyBits
 
             lda   _SpriteBits,x                 ; Get the bit flag for this sprite slot
-            tsb   SpriteMap                     ; Mark it in the sprite map bit field
+            sta   tmp0
+            stx   tmp1                          ; preserve the sprite record offset
+            txa
+            and   #$00E0
+            lsr
+            lsr
+            lsr
+            lsr
+            tax
+            lda   tmp0
+            ora   _SpriteMap,x                   ; Mark it in the 128-bit sprite map
+            sta   _SpriteMap,x
+            ldx   tmp1
 
             jsr   _PrecalcSpriteSize            ; Cache sprite property values
             jsr   _PrecalcSpriteBounds
 
             jsr   _InsertSprite                 ; Insert it into the sorted list
             jmp   _Validate
+:invalid_slot
+            rts
 
 ; _SortSprite
 ;
@@ -703,9 +702,9 @@ _Validate
 TSClearSprite mac
             ldy   TileStoreLookup+{]1},x
 
-            lda   TileStore+TS_SPRITE_FLAG,y
+            lda   [SpriteFlagPtr],y
             and   tmp0
-            sta   TileStore+TS_SPRITE_FLAG,y
+            sta   [SpriteFlagPtr],y
 
             lda   TileStore+TS_DIRTY,y
             bne   next
@@ -728,6 +727,18 @@ next
 _ClearSpriteFromTileStore
             lda   _SpriteBitsNot,y                          ; Cache this value in a direct page location
             sta   tmp0
+            tya
+            and   #$00E0
+            lsr
+            lsr
+            lsr
+            lsr
+            asl
+            tax
+            ldal  _SpriteFlagPtrs,x
+            sta   SpriteFlagPtr
+            ldal  _SpriteFlagPtrs+2,x
+            sta   SpriteFlagPtr+2
             ldx   _Sprites+TS_COVERAGE_SIZE,y
             jmp   (csfts_tbl,x)
 csfts_tbl   dw    csfts_1x1,csfts_1x2,csfts_1x3,csfts_out
@@ -800,46 +811,38 @@ csfts_1x1   ldx   _Sprites+TS_LOOKUP_INDEX,y
             TSClearSprite 0
             rts
 
-; Use the blttmp space to build the active sprite list.  Since the sprite tiles are not drawn until later,
-; it's OK to use that scratch space here.  And it's just the right size, 32 bytes
+; Rebuild the static active sprite list from all eight words of the sprite map.
 RebuildSpriteArray
-            lda   SpriteMap                     ; Get the bit field
-
-; Unrolled loop to get the sprite index values that correspond to the set bit positions
-
-            pea   $FFFF                         ; end-of-list marker
-]step       equ   0
-            lup   4
-            lsr
-            bcc   :skip_1
-            pea   ]step
-:skip_1     lsr
-            bcc   :skip_2
-            pea   ]step+2
-:skip_2     lsr
-            bcc   :skip_3
-            pea   ]step+4
-:skip_3     lsr
-            bcc   :skip_4
-            pea   ]step+6
-:skip_4     beq   :end_1
-]step       equ   ]step+8
-            --^
-:end_1
-
-; Now pop the values off of the stack until reaching the sentinel value.  This could be unrolled, but
-; it is only done once per frame.
-
-            ldx   #0
-:loop
-            pla
-            bmi   :out
-            sta   activeSpriteList,x
+            ldx   #0                          ; bitmap word offset
+            stz   tmp0                        ; sprite record offset for this bitmap word
+            stz   tmp1                        ; output byte count
+:word       lda   _SpriteMap,x
+            sta   tmp2
+            stz   tmp3
+:bit        lsr   tmp2
+            bcc   :not_set
+            lda   tmp0
+            clc
+            adc   tmp3
+            ldy   tmp1
+            sta   _ActiveSpriteList,y
+            inc   tmp1
+            inc   tmp1
+:not_set    inc   tmp3
+            inc   tmp3
+            lda   tmp3
+            cmp   #32
+            bcc   :bit
             inx
             inx
-            bra   :loop
-:out
-            stx   ActiveSpriteCount
+            lda   tmp0
+            clc
+            adc   #32
+            sta   tmp0
+            cpx   #16
+            bcc   :word
+            lda   tmp1
+            sta   ActiveSpriteCount
             rts
 
 ; _GetTileAt

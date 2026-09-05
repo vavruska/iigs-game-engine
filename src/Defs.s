@@ -86,7 +86,7 @@ SCBArrayPtr            equ   90          ; Used for palette binding
 SpriteBanks            equ   94          ; Bank bytes for the sprite data and sprite mask
 LastRender             equ   96          ; Record which render function was last executed
 CompileBankTop         equ   98          ; First free byte i nthe compile bank.  Grows upward in memeory.
-SpriteMap              equ   100         ; Bitmap of open sprite slots.
+SpriteMap              equ   100         ; Legacy location; the 128-bit map is _SpriteMap.
 ActiveSpriteCount      equ   102
 BG1DataBank            equ   104          ; Data bank that holds BG1 layer data
 TileStoreBankAndBank01 equ   106
@@ -101,10 +101,19 @@ SpriteRemovedFlag      equ   122         ; Indicate if any sprites were removed 
 RenderFlags            equ   124         ; Flags passed to the Render() function
 BG1Scaling             equ   126
 
-activeSpriteList       equ   128         ; 32 bytes for the active sprite list (can persist across frames)
+activeSpriteList       equ   128         ; Legacy location; the active list is _ActiveSpriteList.
 
-; Free space from 160 to 192
+; Free space from 160 to 172
+SpriteScanTile         equ   172
+SpriteScanWord         equ   174
+SpriteScanCount        equ   176
+SpriteScanBase         equ   178
+SpriteScanFlag         equ   180
+SpriteScanBit          equ   182
+SpriteFlagPtr          equ   184         ; Four-byte pointer into the sprite flag bank
+SpriteScanValue        equ   188
 
+; Free 190
 blttmp                 equ   192         ; 32 bytes of local cache/scratch space for blitter
 
 tmp8                   equ   224         ; another 16 bytes of temporary space to be used as scratch 
@@ -247,7 +256,7 @@ VBUFF_TILE_ROW_BYTES   equ {8*VBUFF_STRIDE_BYTES}        ; Each row is comprised
 VBUFF_TILE_COL_BYTES   equ 4
 VBUFF_SPRITE_STEP      equ {VBUFF_TILE_ROW_BYTES*3}      ; Allocate space for 16 rows + 8 rows of buffer
 VBUFF_SPRITE_START     equ {VBUFF_TILE_ROW_BYTES+4}      ; Start at an offset so $0000 can be used as an empty value
-VBUFF_SLOT_COUNT       equ 48                            ; Have space for this many stamps
+VBUFF_SLOT_COUNT       equ 56                            ; Fill the bank with stamp slots
 
 ; This is 13 blocks wide
 SPRITE_PLANE_SPAN      equ VBUFF_STRIDE_BYTES
@@ -283,6 +292,17 @@ ScreenModeWidth   EXT
 ScreenModeHeight  EXT
 _SpriteBits       EXT
 _SpriteBitsNot    EXT
+_SpriteMap        EXT
+_ActiveSpriteList EXT
+_SpriteVBuffOffsets EXT
+_SpriteFlagPtrs    EXT
+SpriteFlag1        EXT
+SpriteFlag2        EXT
+SpriteFlag3        EXT
+SpriteFlag4        EXT
+SpriteFlag5        EXT
+SpriteFlag6        EXT
+SpriteFlag7        EXT
 VBuffArray        EXT
 _stamp_step       EXT
 VBuffVertTableSelect EXT

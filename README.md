@@ -4,6 +4,9 @@
 </h1>
 <p align="center">A <b>high-performance</b> library for writing <b>tile-based</b> games for the Apple IIgs personal computer in 65816 assembly langugage.  Unlock the full, 16-bit potential of the last machine of the Apple ][ line.</p>
 
+# Changes in this Fork
+This fork increases the number of sprites from 16 to 128 and the number of Vbufs from 40 to 56.  The only render mode that was tested was 0 as these changes were made to support Galaga.
+
 # Introduction
 
 The Generic Tile Engine (GTE) project is a tile engine built to exploit the unique hardware capabilities of the Apple IIgs personal computer.  It supports the Apple IIgs super hires graphics mode (320x200, 16/256 colors) and provides two full-screen independent scrolling layers along with software sprites.  The API and core functionality of the library is inspired by the graphics hardware of the NES/SMS/SNES/Genesis console era.

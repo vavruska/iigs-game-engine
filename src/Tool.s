@@ -134,7 +134,8 @@ _TSBootInit
 ;
 ; X = tool set number in low byte and function number in high byte
 ;
-; StartUp(dPageAddr, capFlags, userId)
+; StartUp(dPageAddr, capFlags, userId). The engine uses one direct page;
+; expanded sprite tables are stored in the static TileStore/SFLAGS banks.
 _TSStartUp
 
 userId          =    7
@@ -711,7 +712,7 @@ _TSStartScript
 ;
 ; Overlays are handled as quasi-sprites.  They need to be included in the y-sorted list of "stuff", but they are not drawn like
 ; sprites.  As such, they set a special flag in the SPRITE_ID field which allows them to be ignored for other purposes.  Also,
-; they are not added into the "normal" sprite range on 0 - 15, but are stored in locations 16 and up to further seggregate them from
+; they are not added into the "normal" sprite range on 0 - 127, but are stored after that range to further segregate them from
 ; the rest of the system.  A lot of the SPRITE_* locations are repurposed for Overlay-specific information.
 _TSSetOverlay
 :proc           equ     FirstParam+0

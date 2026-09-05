@@ -7,7 +7,7 @@ TILE_STORE_SIZE       equ  {MAX_TILES*2}          ; The tile store contains a ti
 
 TS_TILE_ID            equ  {TILE_STORE_SIZE*0}      ; tile descriptor for this location
 TS_DIRTY              equ  {TILE_STORE_SIZE*1}      ; Flag. Used to prevent a tile from being queued multiple times per frame
-TS_SPRITE_FLAG        equ  {TILE_STORE_SIZE*2}      ; Bitfield of all sprites that intersect this tile. 0 if no sprites.
+TS_SPRITE_FLAG        equ  {TILE_STORE_SIZE*2}      ; Low word of the 128-bit sprite intersection bitmap.
 TS_TILE_ADDR          equ  {TILE_STORE_SIZE*3}      ; cached value, the address of the tiledata for this tile
 TS_CODE_ADDR_LOW      equ  {TILE_STORE_SIZE*4}      ; const value, address of this tile in the code fields
 TS_CODE_ADDR_HIGH     equ  {TILE_STORE_SIZE*5}
@@ -20,7 +20,7 @@ TILE_STORE_NUM        equ  9                        ; Need this many parallel ar
 ; Sprite data structures.  We cache quite a few pieces of information about the sprite
 ; to make calculations faster, so this is hidden from the caller.
 
-MAX_SPRITES            equ 16
+MAX_SPRITES            equ 128
 SPRITE_REC_SIZE        equ 42
 
 MAX_OVERLAYS           equ 3

@@ -207,10 +207,13 @@ _CalcDirtySprite
         sbc   TileStoreLookup,x
         sta   tmp1                                ; Spill this value to direct page temp space
 
-; Last task. Since we don't need to use the X-register to cache values; load the direct page 2 
-; offset for the SPRITE_VBUFF_PTR and save it
+; Last task. Cache the adjusted VBUFF offset by sprite record index.
 
 tmp_out
+        lda   tmp1
+        sta   _SpriteVBuffOffsets,y
+        cpy   #32
+        bcs   mdsOut
         tya
         ora   #$100
         tax
@@ -222,6 +225,19 @@ mdsOut  rts
 _MarkDirtySpriteTiles
         lda    _SpriteBits,y
         sta    SpriteBit
+        tya
+        and    #$00E0
+        lsr
+        lsr
+        lsr
+        lsr
+        asl
+        tax
+        ldal   _SpriteFlagPtrs,x
+        sta    SpriteFlagPtr
+        ldal   _SpriteFlagPtrs+2,x
+        sta    SpriteFlagPtr+2
+        lda    SpriteFlagPtr
 
         clc
         ldx    _Sprites+TS_COVERAGE_SIZE,y
@@ -246,8 +262,8 @@ TSSetSprite mac
         ldy   TileStoreLookup+{]1},x
 
         lda   SpriteBit
-        ora   TileStore+TS_SPRITE_FLAG,y
-        sta   TileStore+TS_SPRITE_FLAG,y
+         ora   [SpriteFlagPtr],y
+         sta   [SpriteFlagPtr],y
 
         lda   TileStore+TS_DIRTY,y
         bne   next
